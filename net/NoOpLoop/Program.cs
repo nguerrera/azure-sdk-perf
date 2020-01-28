@@ -12,7 +12,6 @@ namespace NoOpLoop
         private static long _counter = 0;
 
         private static TimeSpan[] _lastCompletionTimes = new TimeSpan[1];
-        private static TimeSpan _lastCompletionTime;
 
         public class Options
         {
@@ -47,7 +46,7 @@ namespace NoOpLoop
                 errors => Task.CompletedTask);
         }
 
-        private static async Task Run(Options options)
+        private static Task Run(Options options)
         {
             bool interlockedIncrement = options.InterlockedIncrement;
 ;
@@ -70,7 +69,6 @@ namespace NoOpLoop
                     if (options.LastCompletionTimes)
                     {
                         _lastCompletionTimes[count % _lastCompletionTimes.Length] = sw.Elapsed;
-                        // _lastCompletionTime = sw.Elapsed;
                     }
                 }
             }
@@ -97,6 +95,8 @@ namespace NoOpLoop
             var opsPerSecond = options.Count / elapsed;
 
             Console.WriteLine($"Called {options.Count} functions in {elapsed:N2} seconds ({opsPerSecond:N2} ops/s)");
+
+            return Task.CompletedTask;
         }
 
         private static void NoOp()
