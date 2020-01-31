@@ -29,6 +29,9 @@ namespace HttpClientLoop
 
             [Option('u', "url", Required = true)]
             public string Url { get; set; }
+
+            [Option('w', "warmup", Default = 5_000)]
+            public long Warmup { get; set; }
         }
 
         static async Task Main(string[] args)
@@ -57,49 +60,59 @@ namespace HttpClientLoop
             }
 
             // Warmup
-            await _httpClient.GetStringAsync(options.Url);
+            Console.WriteLine("=== Warmup ===");
+            await RunLoops(options.Url, options.Warmup, options.Sync, options.Parallel);
 
+            _requestsSent = 0;
+
+            Console.WriteLine();
+            Console.WriteLine("=== Test ===");
+            await RunLoops(options.Url, options.Count, options.Sync, options.Parallel);
+        }
+
+        private static async Task RunLoops(string url, long count, bool sync, int parallel)
+        {
             var sw = Stopwatch.StartNew();
-            if (options.Sync)
+            if (sync)
             {
-                var threads = new Thread[options.Parallel];
+                var threads = new Thread[parallel];
 
-                for (var i = 0; i < options.Parallel; i++)
+                for (var i = 0; i < parallel; i++)
                 {
                     var j = i;
-                    threads[i] = new Thread(() => GetLoopAsync(options).Wait());
+                    threads[i] = new Thread(() => GetLoopAsync(url, count, sync).Wait());
                     threads[i].Start();
                 }
-                for (var i = 0; i < options.Parallel; i++)
+                for (var i = 0; i < parallel; i++)
                 {
                     threads[i].Join();
                 }
             }
             else
             {
-                var tasks = new Task[options.Parallel];
-                for (var i = 0; i < options.Parallel; i++)
+                var tasks = new Task[parallel];
+                for (var i = 0; i < parallel; i++)
                 {
-                    tasks[i] = GetLoopAsync(options);
+                    tasks[i] = GetLoopAsync(url, count, sync);
                 }
                 await Task.WhenAll(tasks);
             }
             sw.Stop();
 
             var elapsed = sw.Elapsed.TotalSeconds;
-            var opsPerSecond = options.Count / elapsed;
+            var opsPerSecond = count / elapsed;
 
-            Console.WriteLine($"Processed {options.Count} requests in {elapsed:N2} seconds ({opsPerSecond:N2} RPS)");
+            Console.WriteLine($"Processed {count} requests in {elapsed:N2} seconds ({opsPerSecond:N2} RPS)");
         }
 
-        private static async Task GetLoopAsync(Options options)
+        private static async Task GetLoopAsync(string url, long count, bool sync)
         {
             while (true)
             {
-                if (Interlocked.Increment(ref _requestsSent) <= options.Count)
+                if (Interlocked.Increment(ref _requestsSent) <= count)
                 {
-                    var task = _httpClient.GetStringAsync(options.Url);
-                    if (options.Sync)
+                    var task = _httpClient.GetStringAsync(url);
+                    if (sync)
                     {
                         task.Wait();
                     }
