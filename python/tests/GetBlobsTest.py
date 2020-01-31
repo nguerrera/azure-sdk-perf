@@ -29,13 +29,13 @@ class GetBlobsTest(PerfStressTest):
 
 
     async def GlobalSetupAsync(self):
-        await self.async_container_client.create_container()
+        self.container_client.create_container()
         for _ in range(0, self.Arguments.count): #pylint: disable=no-member
-            await self.async_container_client.upload_blob(NewGuid(), '')
+            self.container_client.upload_blob(NewGuid(), '')
 
 
     async def GlobalCleanupAsync(self):
-        await self.async_container_client.delete_container()
+        self.container_client.delete_container()
 
 
     def Run(self):
