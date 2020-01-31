@@ -56,6 +56,9 @@ namespace HttpClientLoop
                 _httpClient = new HttpClient();
             }
 
+            // Warmup
+            await _httpClient.GetStringAsync(options.Url);
+
             var sw = Stopwatch.StartNew();
             if (options.Sync)
             {
