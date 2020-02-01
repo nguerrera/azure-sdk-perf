@@ -2,7 +2,7 @@ import requests
 
 from core.PerfStressTest import PerfStressTest
 
-class RequestsHttpClientGetTest(PerfStressTest):
+class RequestsGetTest(PerfStressTest):
 
     async def GlobalSetupAsync(self):
         type(self).session = requests.Session()

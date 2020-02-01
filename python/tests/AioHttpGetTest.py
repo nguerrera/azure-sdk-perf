@@ -2,7 +2,7 @@ import aiohttp
 
 from core.PerfStressTest import PerfStressTest
 
-class AioHttpClientGetTest(PerfStressTest):
+class AioHttpGetTest(PerfStressTest):
 
     async def GlobalSetupAsync(self):
         type(self).session = aiohttp.ClientSession()
