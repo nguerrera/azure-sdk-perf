@@ -1,18 +1,14 @@
 import aiohttp
-import requests
 
 from core.PerfStressTest import PerfStressTest
 
-class HttpClientGetTest(PerfStressTest):
+class AioHttpClientGetTest(PerfStressTest):
 
     async def GlobalSetupAsync(self):
         type(self).session = aiohttp.ClientSession()
 
     async def GlobalCleanupAsync(self):
         await type(self).session.close()
-
-    def Run(self):
-        requests.get(self.Arguments.url).text
 
     async def RunAsync(self):
         async with type(self).session.get(self.Arguments.url) as response:
