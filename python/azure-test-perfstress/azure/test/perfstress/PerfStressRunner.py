@@ -12,10 +12,14 @@ import threading
 from .PerfStressTest import PerfStressTest
 from .Helpers import RepeatedTimer
 
-_DEFAULT_TEST_LOCATION = os.path.join(os.path.dirname(__file__), '../tests')
-
 class PerfStressRunner:
-    def __init__(self, test_folder_path=_DEFAULT_TEST_LOCATION):
+    def __init__(self, test_folder_path=None):
+        if test_folder_path is None:
+            # Use folder of caller
+            frame = inspect.stack()[1]
+            filename = frame[0].f_code.co_filename
+            test_folder_path = os.path.dirname(filename)
+
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(level=logging.INFO)
         handler = logging.StreamHandler()
@@ -77,7 +81,7 @@ class PerfStressRunner:
         self.logger.info(per_test_args)
 
 
-    def _DiscoverTests(self, test_folder_path=_DEFAULT_TEST_LOCATION):
+    def _DiscoverTests(self, test_folder_path):
         self._test_classes = {}
 
         # Dynamically enumerate all python modules under the tests path for classes that implement PerfStressTest       
