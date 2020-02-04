@@ -160,6 +160,7 @@ class PerfStressRunner:
             total_operations, weighted_average_seconds, operations_per_second, seconds_per_operation))
         self.logger.info("")
 
+
     def RunLoop(self, test, duration, id):
         start = time.time()
         runtime = 0
