@@ -154,14 +154,12 @@ class PerfStressRunner:
         self.logger.info("=== Results ===")
         try:
             count_per_second = (self._operation_count / (sum(self._latest_operation_durations) / len(self._latest_operation_durations)))
-            count_per_second_per_thread = count_per_second / self._test_class_to_run.Arguments.parallel
-            seconds_per_operation = 1/count_per_second_per_thread
+            seconds_per_operation = 1/count_per_second
         except ZeroDivisionError as e:
             self.logger.warn("Attempted to divide by zero: {}".format(e))
             count_per_second = 0
-            count_per_second_per_thread = 0
             seconds_per_operation = 'N/A'
-        self.logger.info("\tCompleted {} operations\n\tAverage {} operations per thread per second\n\tAverage {} seconds per operation".format(self._operation_count, count_per_second_per_thread, seconds_per_operation))
+        self.logger.info("\tCompleted {} operations\n\tAverage {} operations per second\n\tAverage {} seconds per operation".format(self._operation_count, count_per_second, seconds_per_operation))
 
 
     def RunLoop(self, test, duration, id):
