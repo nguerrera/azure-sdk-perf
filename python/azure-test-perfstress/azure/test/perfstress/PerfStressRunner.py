@@ -10,7 +10,7 @@ import sys
 import threading
 
 from .PerfStressTest import PerfStressTest
-from .Helpers import RepeatedTimer
+from .RepeatedTimer import RepeatedTimer
 
 class PerfStressRunner:
     def __init__(self, test_folder_path=None):
