@@ -31,15 +31,6 @@ class PerfStressRunner:
         self._ParseArgs()
 
 
-        self._operation_count_lock = threading.Lock()
-        self._operation_count = 0
-        self._last_completed = -1
-        self._latest_operation_durations = []
-        # These (durations and status) are different despite tracking the runners _technically_ it's not wise to use structures like this in a non-thread-safe manner, 
-        # so I'm only abusing this for ease of status updates where error doesn't really matter, and durations is still aggregated in a safe way.
-        self._status = {} 
-        
-
     def _ParseArgs(self):
         # First, detect which test we're running.
         arg_parser = argparse.ArgumentParser(
@@ -76,15 +67,17 @@ class PerfStressRunner:
 
         self._test_class_to_run.Arguments = per_test_args
 
+        self.logger.info("")
         self.logger.info("=== Options ===")
         self.logger.info(args)
         self.logger.info(per_test_args)
+        self.logger.info("")
 
 
     def _DiscoverTests(self, test_folder_path):
         self._test_classes = {}
 
-        # Dynamically enumerate all python modules under the tests path for classes that implement PerfStressTest       
+        # Dynamically enumerate all python modules under the tests path for classes that implement PerfStressTest
         for loader, name, _ in pkgutil.walk_packages([test_folder_path]):
 
             try:
@@ -113,13 +106,16 @@ class PerfStressRunner:
             try:
                 await asyncio.gather(*[test.SetupAsync() for test in tests])
 
+                self.logger.info("")
+
                 if self._test_class_to_run.Arguments.warmup > 0:
                     await self._RunTestsAsync(tests, self._test_class_to_run.Arguments.warmup, "Warmup")
 
-                self.logger.info("=== Running ===")
-
                 for i in range(0, self._test_class_to_run.Arguments.iterations):
-                    await self._RunTestsAsync(tests, self._test_class_to_run.Arguments.duration, "Test {}".format(i))
+                    title = "Test"
+                    if self._test_class_to_run.Arguments.iterations > 1:
+                        title += " " + (i + 1)
+                    await self._RunTestsAsync(tests, self._test_class_to_run.Arguments.duration, title)
 
             finally:
                 if not self._test_class_to_run.Arguments.no_cleanup:
@@ -131,10 +127,9 @@ class PerfStressRunner:
 
 
     async def _RunTestsAsync(self, tests, duration, title):
-        self._operation_count = 0
-        self._last_completed = -1
-        self._latest_operation_durations = []
-        self._status = {}
+        self._completed_operations = [0] * len(tests)
+        self._last_completion_times = [0] * len(tests)
+        self._last_total_operations = -1
 
         status_thread = RepeatedTimer(1, self._PrintStatus, title)
 
@@ -151,51 +146,45 @@ class PerfStressRunner:
 
         status_thread.stop()
 
+        self.logger.info("")
         self.logger.info("=== Results ===")
-        try:
-            count_per_second = (self._operation_count / (sum(self._latest_operation_durations) / len(self._latest_operation_durations)))
-            seconds_per_operation = 1/count_per_second
-        except ZeroDivisionError as e:
-            self.logger.warn("Attempted to divide by zero: {}".format(e))
-            count_per_second = 0
-            seconds_per_operation = 'N/A'
-        self.logger.info("\tCompleted {} operations\n\tAverage {} operations per second\n\tAverage {} seconds per operation".format(self._operation_count, count_per_second, seconds_per_operation))
 
+        total_operations = sum(self._completed_operations)
+        operations_per_second = sum(map(
+            lambda x: x[0] / x[1],
+            zip(self._completed_operations, self._last_completion_times)))
+        seconds_per_operation = 1 / operations_per_second
+        weighted_average_seconds = total_operations / operations_per_second
+
+        self.logger.info("Completed {} operations in a weighted-average of {:.2f}s ({:.2f} ops/s, {:.3f} s/op)".format(
+            total_operations, weighted_average_seconds, operations_per_second, seconds_per_operation))
+        self.logger.info("")
 
     def RunLoop(self, test, duration, id):
         start = time.time()
         runtime = 0
-        count = 0
         while runtime < duration:
             test.Run()
             runtime = time.time() - start
-            count += 1
-            self._status[id] = count
-        self._IncrementOperationCountAndTime(count, runtime)
+            self._completed_operations[id] += 1
+            self._last_completion_times[id] = runtime
 
 
     async def RunLoopAsync(self, test, duration, id):
         start = time.time()
         runtime = 0
-        count = 0
         while runtime < duration:
             await test.RunAsync()
             runtime = time.time() - start
-            count += 1
-            self._status[id] = count
-        self._IncrementOperationCountAndTime(count, runtime) 
-
-
-    def _IncrementOperationCountAndTime(self, count, runtime):
-        with self._operation_count_lock: # Be aware that while this can be used to update more often than "once at the end" it'll thrash the lock in the parallel case and ruin perf.
-            self._operation_count += count
-            self._latest_operation_durations.append(runtime)
+            self._completed_operations[id] += 1
+            self._last_completion_times[id] = runtime
 
 
     def _PrintStatus(self, title):
-        if self._last_completed == -1:
-            self._last_completed = 0
+        if self._last_total_operations == -1:
+            self._last_total_operations = 0
             self.logger.info("=== {} ===\nCurrent\t\tTotal".format(title))
-        operation_count = sum(self._status.values())
-        self.logger.info("{}\t\t{}".format(operation_count - self._last_completed, operation_count))
-        self._last_completed = operation_count
+
+        total_operations = sum(self._completed_operations)
+        self.logger.info("{}\t\t{}".format(total_operations - self._last_total_operations, total_operations))
+        self._last_total_operations = total_operations
