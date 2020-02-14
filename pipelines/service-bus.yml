@@ -1,0 +1,7 @@
+pool: server
+
+steps:
+- task: PublishToAzureServiceBus@1
+  inputs:
+    connectedServiceName: mikeharder-perf-automation-jobs
+    messageBody: "Hello from Azure Pipelines"
