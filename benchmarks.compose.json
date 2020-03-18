@@ -11,7 +11,8 @@
       "net-storage-blobs": {
         "source": {
           "repository": "https://github.com/mikeharder/azure-sdk-perf.git",
-          "dockerfile": "net/Azure.Storage.Blobs.PerfStress/Dockerfile"
+          "dockerfile": "net/Azure.Storage.Blobs.PerfStress/Dockerfile",
+          "dockerContextDirectory": "net"
         },
         "waitForExit": true,
         "readyStateText": "Application started."
