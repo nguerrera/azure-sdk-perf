@@ -43,6 +43,11 @@ namespace Azure.Test.PerfStress
                 throw new InvalidOperationException("Requires server GC");
             }
 
+            if (options.JobStatistics)
+            {
+                Console.WriteLine("Application started.");
+            }
+
             Console.WriteLine("=== Options ===");
             Console.WriteLine(JsonSerializer.Serialize(options, options.GetType(), new JsonSerializerOptions()
             {
@@ -77,14 +82,14 @@ namespace Azure.Test.PerfStress
                         await RunTestsAsync(tests, options.Sync, options.Parallel, options.Warmup, "Warmup");
                     }
 
-                    for (var i=0; i< options.Iterations; i++)
+                    for (var i = 0; i < options.Iterations; i++)
                     {
                         var title = "Test";
                         if (options.Iterations > 1)
                         {
                             title += " " + (i + 1);
                         }
-                        await RunTestsAsync(tests, options.Sync, options.Parallel, options.Duration, title);
+                        await RunTestsAsync(tests, options.Sync, options.Parallel, options.Duration, title, options.JobStatistics);
                     }
                 }
                 finally
@@ -120,7 +125,8 @@ namespace Azure.Test.PerfStress
             }
         }
 
-        private static async Task RunTestsAsync(IPerfStressTest[] tests, bool sync, int parallel, int durationSeconds, string title)
+        private static async Task RunTestsAsync(IPerfStressTest[] tests, bool sync, int parallel, int durationSeconds, string title,
+            bool jobStatistics = false)
         {
             _completedOperations = new int[parallel];
             _lastCompletionTimes = new TimeSpan[parallel];
@@ -186,6 +192,31 @@ namespace Azure.Test.PerfStress
             Console.WriteLine($"Completed {totalOperations} operations in a weighted-average of {weightedAverageSeconds:N2}s " +
                 $"({operationsPerSecond:N2} ops/s, {secondsPerOperation:N3} s/op)");
             Console.WriteLine();
+
+            if (jobStatistics)
+            {
+                var output = new BenchmarkOutput();
+
+                output.Metadata.Add(new BenchmarkMetadata
+                {
+                    Source = "PerfStress",
+                    Name = "perfstress/throughput",
+                    ShortDescription = "Throughput (ops/sec)",
+                    LongDescription = "Throughput (ops/sec)",
+                    Format = "n2",
+                });
+
+                output.Measurements.Add(new BenchmarkMeasurement
+                {
+                    Timestamp = DateTime.UtcNow,
+                    Name = "perfstress/throughput",
+                    Value = operationsPerSecond,
+                });
+
+                Console.WriteLine("#StartJobStatistics");
+                Console.WriteLine(JsonSerializer.Serialize(output));
+                Console.WriteLine("#EndJobStatistics");
+            }
         }
 
         private static void RunLoop(IPerfStressTest test, int index, CancellationToken cancellationToken)
@@ -267,9 +298,9 @@ namespace Azure.Test.PerfStress
 
                 Console.WriteLine();
             });
-            
+
             thread.Start();
-            
+
             return thread;
         }
 

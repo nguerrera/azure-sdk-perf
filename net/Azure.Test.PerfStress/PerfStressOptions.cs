@@ -17,6 +17,9 @@ namespace Azure.Test.PerfStress
         [Option('i', "iterations", Default = 1, HelpText = "Number of iterations of main test loop")]
         public int Iterations { get; set; }
 
+        [Option("job-statistics", HelpText = "Print job statistics (used by automation)")]
+        public bool JobStatistics { get; set; }
+
         [Option("no-cleanup", HelpText = "Disables test cleanup")]
         public bool NoCleanup { get; set; }
 
