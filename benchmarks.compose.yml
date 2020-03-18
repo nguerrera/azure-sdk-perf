@@ -1,0 +1,20 @@
+﻿{
+    "$schema": "https://raw.githubusercontent.com/aspnet/Benchmarks/master/src/BenchmarksDriver2/benchmarks.schema.json",
+    "scenarios": {
+      "net-storage-blobs": {
+        "application": {
+          "job": "net-storage-blobs"
+        }
+      }
+    },
+    "jobs": {
+      "net-storage-blobs": {
+        "source": {
+          "repository": "https://github.com/mikeharder/azure-sdk-perf.git",
+          "dockerfile": "net/Azure.Storage.Blobs.PerfStress/Dockerfile"
+        },
+        "waitForExit": true,
+        "readyStateText": "Application started."
+      }
+    }
+  }
