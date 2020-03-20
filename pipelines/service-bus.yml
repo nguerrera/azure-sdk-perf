@@ -5,10 +5,12 @@ steps:
   inputs:
     connectedServiceName: mikeharder-perf-automation-jobs
     messageBody: |
-      System.CollectionUri: $(System.CollectionUri)
-      System.TeamProjectID: $(System.TeamProjectID)
-      System.HostType: $(System.HostType)
-      System.PlanID: $(System.PlanID)
-      System.JobID: $(System.JobID)
-      System.TimelineID: $(System.TimelineID)
-      System.TaskInstanceID: $(System.TaskInstanceID)
+      {
+        "CollectionUri": "$(System.CollectionUri)",
+        "TeamProjectID": "$(System.TeamProjectID)",
+        "HostType": "$(System.HostType)",
+        "PlanID": "$(System.PlanID)",
+        "JobID": "$(System.JobID)",
+        "TimelineID": "$(System.TimelineID)",
+        "TaskInstanceID": "$(System.TaskInstanceID)"
+      }
