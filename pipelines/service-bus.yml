@@ -4,4 +4,11 @@ steps:
 - task: PublishToAzureServiceBus@1
   inputs:
     connectedServiceName: mikeharder-perf-automation-jobs
-    messageBody: "Hello from Azure Pipelines"
+    messageBody: |
+      System.CollectionUri: $(System.CollectionUri)
+      System.TeamProjectID: $(System.TeamProjectID)
+      System.HostType: $(System.HostType)
+      System.PlanID: $(System.PlanID)
+      System.JobID: $(System.JobID)
+      System.TimelineID: $(System.TimelineID)
+      System.TaskInstanceID: $(System.TaskInstanceID)
