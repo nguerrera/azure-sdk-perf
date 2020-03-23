@@ -6,11 +6,5 @@ steps:
     connectedServiceName: mikeharder-perf-automation-jobs
     messageBody: |
       {
-        "CollectionUri": "$(System.CollectionUri)",
-        "TeamProjectID": "$(System.TeamProjectID)",
-        "HostType": "$(System.HostType)",
-        "PlanID": "$(System.PlanID)",
-        "JobID": "$(System.JobID)",
-        "TimelineID": "$(System.TimelineID)",
-        "TaskInstanceID": "$(System.TaskInstanceID)"
+        "foo": "bar"
       }
