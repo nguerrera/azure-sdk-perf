@@ -4,6 +4,7 @@ steps:
 - task: PublishToAzureServiceBus@1
   inputs:
     connectedServiceName: mikeharder-perf-automation-jobs
+    waitForCompletion: true
     messageBody: |
       {
         "foo": "bar"
