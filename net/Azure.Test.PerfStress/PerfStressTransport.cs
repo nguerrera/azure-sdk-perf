@@ -65,7 +65,11 @@ namespace Azure.Test.PerfStress
 
             private void ChangeUri(HttpMessage message)
             {
-                message.Request.Headers.Add("Host", message.Request.Uri.Host);
+                // Ensure Host header is only set once, since the same HttpMessage will be reused on retries
+                if (!message.Request.Headers.Contains("Host"))
+                {
+                    message.Request.Headers.Add("Host", message.Request.Uri.Host);
+                }
 
                 message.Request.Uri.Host = _host;
                 if (_port.HasValue)
