@@ -1,0 +1,3 @@
+[submodule "azure-sdk-tools"]
+	path = azure-sdk-tools
+	url = https://github.com/azure/azure-sdk-tools
