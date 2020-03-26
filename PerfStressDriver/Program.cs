@@ -24,21 +24,21 @@ namespace PerfStressDriver
             var client = new ServiceBusClient(connectionString);
             var processor = client.GetProcessor("jobs", new ServiceBusProcessorOptions
             {
-                // https://github.com/Azure/azure-sdk-for-net/issues/10797
-                AutoComplete = false
+                AutoComplete = true,
+                MaxConcurrentCalls = 1,
             });
-
-            var tcs = new TaskCompletionSource<bool>();
 
             processor.ProcessMessageAsync += async args =>
             {
                 var message = args.Message;
-                var devOpsMessage = new DevOpsServiceBusMessage(message);
-
-                Console.WriteLine(devOpsMessage);
-
                 try
                 {
+                    var devOpsMessage = new DevOpsServiceBusMessage(message);
+
+                    Console.WriteLine(devOpsMessage);
+
+                    // Provision resource group
+
                     await devOpsMessage.SignalCompletion(succeeded: true);
                     await args.Receiver.CompleteAsync(message);
                 }
@@ -46,8 +46,6 @@ namespace PerfStressDriver
                 {
                     await args.Receiver.AbandonAsync(message);
                 }
-
-                tcs.SetResult(true);
             };
 
             processor.ProcessErrorAsync += args =>
@@ -56,8 +54,9 @@ namespace PerfStressDriver
             };
 
             await processor.StartProcessingAsync();
-            await tcs.Task;
-            await processor.StopProcessingAsync();
+
+            Console.WriteLine("Press ENTER to exit...");
+            Console.ReadLine();
         }
 
     }
