@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "baseName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "mgmtApiVersion": "2019-04-01",
+    "accountName": "[parameters('baseName')]",
+    "location": "[resourceGroup().location]",
+    "encryption": {
+      "services": {
+        "file": {
+          "enabled": true
+        },
+        "blob": {
+          "enabled": true
+        }
+      },
+      "keySource": "Microsoft.Storage"
+    },
+    "networkAcls": {
+      "bypass": "AzureServices",
+      "virtualNetworkRules": [],
+      "ipRules": [],
+      "defaultAction": "Allow"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "[variables('mgmtApiVersion')]",
+      "name": "[variables('accountName')]",
+      "location": "[variables('location')]",
+      "sku": {
+        "name": "Premium_LRS",
+        "tier": "Premium"
+      },
+      "kind": "BlockBlobStorage",
+      "properties": {
+        "networkAcls": "[variables('networkAcls')]",
+        "supportsHttpsTrafficOnly": true,
+        "encryption": "[variables('encryption')]"
+      }
+    }
+  ],
+  "outputs": {
+    "STORAGE_ACCOUNT_NAME": {
+      "type": "string",
+      "value": "[variables('accountName')]"
+    },
+    "STORAGE_ACCOUNT_KEY": {
+      "type": "string",
+      "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('accountName')), variables('mgmtApiVersion')).keys[0].value]"
+    }
+  }
+}
