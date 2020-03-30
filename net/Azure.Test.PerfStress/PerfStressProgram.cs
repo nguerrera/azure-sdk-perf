@@ -242,7 +242,7 @@ namespace Azure.Test.PerfStress
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
-            {
+                {
                     await test.RunAsync(cancellationToken);
                     _completedOperations[index]++;
                     _lastCompletionTimes[index] = sw.Elapsed;
