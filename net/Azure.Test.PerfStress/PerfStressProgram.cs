@@ -222,38 +222,38 @@ namespace Azure.Test.PerfStress
         private static void RunLoop(IPerfStressTest test, int index, CancellationToken cancellationToken)
         {
             var sw = Stopwatch.StartNew();
-            while (!cancellationToken.IsCancellationRequested)
+            try
             {
-                try
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     test.Run(cancellationToken);
                     _completedOperations[index]++;
                     _lastCompletionTimes[index] = sw.Elapsed;
                 }
-                catch (OperationCanceledException)
-                {
-                }
+            }
+            catch (OperationCanceledException)
+            {
             }
         }
 
         private static async Task RunLoopAsync(IPerfStressTest test, int index, CancellationToken cancellationToken)
         {
             var sw = Stopwatch.StartNew();
-            while (!cancellationToken.IsCancellationRequested)
+            try
             {
-                try
-                {
+                while (!cancellationToken.IsCancellationRequested)
+            {
                     await test.RunAsync(cancellationToken);
                     _completedOperations[index]++;
                     _lastCompletionTimes[index] = sw.Elapsed;
                 }
-                catch (Exception e)
+            }
+            catch (Exception e)
+            {
+                // Ignore if any part of the exception chain is type OperationCanceledException
+                if (!ContainsOperationCanceledException(e))
                 {
-                    // Ignore if any part of the exception chain is type OperationCanceledException
-                    if (!ContainsOperationCanceledException(e))
-                    {
-                        throw;
-                    }
+                    throw;
                 }
             }
         }
