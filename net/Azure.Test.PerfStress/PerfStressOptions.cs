@@ -20,6 +20,9 @@ namespace Azure.Test.PerfStress
         [Option("job-statistics", HelpText = "Print job statistics (used by automation)")]
         public bool JobStatistics { get; set; }
 
+        [Option('l', "latency", HelpText = "Track and print per-operation latency statistics")]
+        public bool Latency { get; set; }
+
         [Option("no-cleanup", HelpText = "Disables test cleanup")]
         public bool NoCleanup { get; set; }
 

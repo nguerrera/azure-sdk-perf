@@ -16,6 +16,7 @@ namespace Azure.Test.PerfStress
     {
         private static int[] _completedOperations;
         private static TimeSpan[] _lastCompletionTimes;
+        private static List<TimeSpan>[] _latencies;
 
         public static async Task Main(Assembly assembly, string[] args)
         {
@@ -89,7 +90,7 @@ namespace Azure.Test.PerfStress
                         {
                             title += " " + (i + 1);
                         }
-                        await RunTestsAsync(tests, options.Sync, options.Parallel, options.Duration, title, options.JobStatistics);
+                        await RunTestsAsync(tests, options.Sync, options.Parallel, options.Duration, title, options.JobStatistics, options.Latency);
                     }
                 }
                 finally
@@ -126,10 +127,19 @@ namespace Azure.Test.PerfStress
         }
 
         private static async Task RunTestsAsync(IPerfStressTest[] tests, bool sync, int parallel, int durationSeconds, string title,
-            bool jobStatistics = false)
+            bool jobStatistics = false, bool latency = false)
         {
             _completedOperations = new int[parallel];
             _lastCompletionTimes = new TimeSpan[parallel];
+            
+            if (latency)
+            {
+                _latencies = new List<TimeSpan>[parallel];
+                for (var i=0; i < parallel; i++)
+                {
+                    _latencies[i] = new List<TimeSpan>();
+                }
+            }
 
             var duration = TimeSpan.FromSeconds(durationSeconds);
             using var testCts = new CancellationTokenSource(duration);
@@ -158,7 +168,7 @@ namespace Azure.Test.PerfStress
                 for (var i = 0; i < parallel; i++)
                 {
                     var j = i;
-                    threads[i] = new Thread(() => RunLoop(tests[j], j, cancellationToken));
+                    threads[i] = new Thread(() => RunLoop(tests[j], j, latency, cancellationToken));
                     threads[i].Start();
                 }
                 for (var i = 0; i < parallel; i++)
@@ -174,7 +184,7 @@ namespace Azure.Test.PerfStress
                     var j = i;
                     // Call Task.Run() instead of directly calling RunLoopAsync(), to ensure the requested
                     // level of parallelism is achieved even if the test RunAsync() completes synchronously.
-                    tasks[j] = Task.Run(() => RunLoopAsync(tests[j], j, cancellationToken));
+                    tasks[j] = Task.Run(() => RunLoopAsync(tests[j], j, latency, cancellationToken));
                 }
                 await Task.WhenAll(tasks);
             }
@@ -192,6 +202,19 @@ namespace Azure.Test.PerfStress
             Console.WriteLine($"Completed {totalOperations} operations in a weighted-average of {weightedAverageSeconds:N2}s " +
                 $"({operationsPerSecond:N2} ops/s, {secondsPerOperation:N3} s/op)");
             Console.WriteLine();
+
+            if (latency)
+            {
+                Console.WriteLine("=== Latency Distribution ===");
+                var sortedLatencies = _latencies.Aggregate<IEnumerable<TimeSpan>>((list1, list2) => list1.Concat(list2)).ToArray();                
+                Array.Sort(sortedLatencies);
+                var percentiles = new double[] { 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0 };
+                foreach (var percentile in percentiles)
+                {
+                    Console.WriteLine($"{percentile,8:P3}\t{sortedLatencies[(int)(sortedLatencies.Length * percentile) - 1].TotalMilliseconds:N2}ms");
+                }
+                Console.WriteLine();
+            }
 
             if (jobStatistics)
             {
@@ -219,14 +242,26 @@ namespace Azure.Test.PerfStress
             }
         }
 
-        private static void RunLoop(IPerfStressTest test, int index, CancellationToken cancellationToken)
+        private static void RunLoop(IPerfStressTest test, int index, bool latency, CancellationToken cancellationToken)
         {
             var sw = Stopwatch.StartNew();
+            var latencySw = new Stopwatch();
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
+                    if (latency)
+                    {
+                        latencySw.Restart();
+                    }
+                    
                     test.Run(cancellationToken);
+                    
+                    if (latency)
+                    {
+                        _latencies[index].Add(latencySw.Elapsed);
+                    }
+
                     _completedOperations[index]++;
                     _lastCompletionTimes[index] = sw.Elapsed;
                 }
@@ -236,14 +271,26 @@ namespace Azure.Test.PerfStress
             }
         }
 
-        private static async Task RunLoopAsync(IPerfStressTest test, int index, CancellationToken cancellationToken)
+        private static async Task RunLoopAsync(IPerfStressTest test, int index, bool latency, CancellationToken cancellationToken)
         {
             var sw = Stopwatch.StartNew();
+            var latencySw = new Stopwatch();
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
+                    if (latency)
+                    {
+                        latencySw.Restart();
+                    }
+
                     await test.RunAsync(cancellationToken);
+
+                    if (latency)
+                    {
+                        _latencies[index].Add(latencySw.Elapsed);
+                    }
+
                     _completedOperations[index]++;
                     _lastCompletionTimes[index] = sw.Elapsed;
                 }
