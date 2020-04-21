@@ -8,6 +8,7 @@ using System.Reflection.Emit;
 using System.Runtime;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace Azure.Test.PerfStress
@@ -17,6 +18,8 @@ namespace Azure.Test.PerfStress
         private static int[] _completedOperations;
         private static TimeSpan[] _lastCompletionTimes;
         private static List<TimeSpan>[] _latencies;
+        private static List<TimeSpan>[] _correctedLatencies;
+        private static Channel<(TimeSpan, Stopwatch)> _pendingOperations;
 
         public static async Task Main(Assembly assembly, string[] args)
         {
@@ -80,7 +83,7 @@ namespace Azure.Test.PerfStress
 
                     if (options.Warmup > 0)
                     {
-                        await RunTestsAsync(tests, options.Sync, options.Parallel, options.Warmup, "Warmup");
+                        await RunTestsAsync(tests, options.Sync, options.Parallel, options.Rate, options.Warmup, "Warmup");
                     }
 
                     for (var i = 0; i < options.Iterations; i++)
@@ -90,7 +93,7 @@ namespace Azure.Test.PerfStress
                         {
                             title += " " + (i + 1);
                         }
-                        await RunTestsAsync(tests, options.Sync, options.Parallel, options.Duration, title, options.JobStatistics, options.Latency);
+                        await RunTestsAsync(tests, options.Sync, options.Parallel, options.Rate, options.Duration, title, options.JobStatistics, options.Latency);
                     }
                 }
                 finally
@@ -126,18 +129,27 @@ namespace Azure.Test.PerfStress
             }
         }
 
-        private static async Task RunTestsAsync(IPerfStressTest[] tests, bool sync, int parallel, int durationSeconds, string title,
-            bool jobStatistics = false, bool latency = false)
+        private static async Task RunTestsAsync(IPerfStressTest[] tests, bool sync, int parallel, int? rate,
+            int durationSeconds, string title, bool jobStatistics = false, bool latency = false)
         {
             _completedOperations = new int[parallel];
             _lastCompletionTimes = new TimeSpan[parallel];
-            
+
             if (latency)
             {
                 _latencies = new List<TimeSpan>[parallel];
-                for (var i=0; i < parallel; i++)
+                for (var i = 0; i < parallel; i++)
                 {
                     _latencies[i] = new List<TimeSpan>();
+                }
+
+                if (rate.HasValue)
+                {
+                    _correctedLatencies = new List<TimeSpan>[parallel];
+                    for (var i = 0; i < parallel; i++)
+                    {
+                        _correctedLatencies[i] = new List<TimeSpan>();
+                    }
                 }
             }
 
@@ -160,6 +172,13 @@ namespace Azure.Test.PerfStress
                 },
                 newLine: true,
                 progressStatusCts.Token);
+
+            Thread pendingOperationsThread = null;
+            if (rate.HasValue)
+            {
+                _pendingOperations = Channel.CreateUnbounded<ValueTuple<TimeSpan, Stopwatch>>();
+                pendingOperationsThread = WritePendingOperations(rate.Value, cancellationToken);
+            }
 
             if (sync)
             {
@@ -189,6 +208,11 @@ namespace Azure.Test.PerfStress
                 await Task.WhenAll(tasks);
             }
 
+            if (pendingOperationsThread != null)
+            {
+                pendingOperationsThread.Join();
+            }
+
             progressStatusCts.Cancel();
             progressStatusThread.Join();
 
@@ -205,15 +229,12 @@ namespace Azure.Test.PerfStress
 
             if (latency)
             {
-                Console.WriteLine("=== Latency Distribution ===");
-                var sortedLatencies = _latencies.Aggregate<IEnumerable<TimeSpan>>((list1, list2) => list1.Concat(list2)).ToArray();                
-                Array.Sort(sortedLatencies);
-                var percentiles = new double[] { 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0 };
-                foreach (var percentile in percentiles)
+                PrintLatencies("Latency Distribution", _latencies);
+
+                if (_correctedLatencies != null)
                 {
-                    Console.WriteLine($"{percentile,8:P3}\t{sortedLatencies[(int)(sortedLatencies.Length * percentile) - 1].TotalMilliseconds:N2}ms");
+                    PrintLatencies("Corrected Latency Distribution", _correctedLatencies);
                 }
-                Console.WriteLine();
             }
 
             if (jobStatistics)
@@ -242,6 +263,19 @@ namespace Azure.Test.PerfStress
             }
         }
 
+        private static void PrintLatencies(string header, List<TimeSpan>[] latencies)
+        {
+            Console.WriteLine($"=== {header} ===");
+            var sortedLatencies = latencies.Aggregate<IEnumerable<TimeSpan>>((list1, list2) => list1.Concat(list2)).ToArray();
+            Array.Sort(sortedLatencies);
+            var percentiles = new double[] { 0.5, 0.75, 0.9, 0.99, 0.999, 0.9999, 0.99999, 1.0 };
+            foreach (var percentile in percentiles)
+            {
+                Console.WriteLine($"{percentile,8:P3}\t{sortedLatencies[(int)(sortedLatencies.Length * percentile) - 1].TotalMilliseconds:N2}ms");
+            }
+            Console.WriteLine();
+        }
+
         private static void RunLoop(IPerfStressTest test, int index, bool latency, CancellationToken cancellationToken)
         {
             var sw = Stopwatch.StartNew();
@@ -254,9 +288,9 @@ namespace Azure.Test.PerfStress
                     {
                         latencySw.Restart();
                     }
-                    
+
                     test.Run(cancellationToken);
-                    
+
                     if (latency)
                     {
                         _latencies[index].Add(latencySw.Elapsed);
@@ -275,10 +309,17 @@ namespace Azure.Test.PerfStress
         {
             var sw = Stopwatch.StartNew();
             var latencySw = new Stopwatch();
+            (TimeSpan Start, Stopwatch Stopwatch) operation = (TimeSpan.Zero, null);
+
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
+                    if (_pendingOperations != null)
+                    {
+                        operation = await _pendingOperations.Reader.ReadAsync(cancellationToken);
+                    }
+
                     if (latency)
                     {
                         latencySw.Restart();
@@ -289,6 +330,11 @@ namespace Azure.Test.PerfStress
                     if (latency)
                     {
                         _latencies[index].Add(latencySw.Elapsed);
+
+                        if (_pendingOperations != null)
+                        {
+                            _correctedLatencies[index].Add(operation.Stopwatch.Elapsed - operation.Start);
+                        }
                     }
 
                     _completedOperations[index]++;
@@ -303,6 +349,31 @@ namespace Azure.Test.PerfStress
                     throw;
                 }
             }
+        }
+
+        private static Thread WritePendingOperations(int rate, CancellationToken token)
+        {
+            var thread = new Thread(() =>
+            {
+                var sw = Stopwatch.StartNew();
+                int writtenOperations = 0;
+                TimeSpan sleep = TimeSpan.FromSeconds(1.0 / rate);
+
+                while (!token.IsCancellationRequested)
+                {
+                    while (writtenOperations < (rate * sw.Elapsed.TotalSeconds))
+                    {
+                        _pendingOperations.Writer.TryWrite(ValueTuple.Create(sw.Elapsed, sw));
+                        writtenOperations++;
+                    }
+
+                    Thread.Sleep(sleep);
+                }
+            });
+
+            thread.Start();
+
+            return thread;
         }
 
         // Run in dedicated thread instead of using async/await in ThreadPool, to ensure this thread has priority

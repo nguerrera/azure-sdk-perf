@@ -32,6 +32,9 @@ namespace Azure.Test.PerfStress
         [Option("port", HelpText = "Port to redirect HTTP requests")]
         public int? Port { get; set; }
 
+        [Option('r', "rate", HelpText = "Target throughput (ops/sec)")]
+        public int? Rate { get; set; }
+
         [Option("sync", HelpText = "Runs sync version of test")]
         public bool Sync { get; set; }
 
