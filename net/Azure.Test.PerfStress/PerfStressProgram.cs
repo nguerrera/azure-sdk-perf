@@ -42,7 +42,10 @@ namespace Azure.Test.PerfStress
 
         private static async Task Run(Type testType, PerfStressOptions options)
         {
-            if (!GCSettings.IsServerGC)
+            // Require Server GC, since most performance-sensitive usage will be in ASP.NET apps which
+            // enable Server GC by default.  Though Server GC is disabled on 1-core machines as of
+            // .NET Core 3.0 (https://github.com/dotnet/runtime/issues/12484).
+            if (Environment.ProcessorCount > 1 && !GCSettings.IsServerGC)
             {
                 throw new InvalidOperationException("Requires server GC");
             }
