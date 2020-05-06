@@ -7,7 +7,32 @@ from azure.test.perfstress import PerfStressTest
 from azure.storage.blob import ContainerClient as SyncContainerClient
 from azure.storage.blob.aio import ContainerClient as AsyncContainerClient
 
-class LargeStream(BytesIO):
+class LargeStream:
+    def __init__(self, length, initial_buffer_length=1024*1024):
+        self._base_data = os.urandom(initial_buffer_length)
+        self._base_data_length = initial_buffer_length
+        self._position = 0
+        self._remaining = length
+
+    def read(self, size=None):
+        if self._remaining == 0:
+            return None
+
+        if size is None:
+            e = self._base_data_length
+        else:
+            e = size
+        e = min(e, self._remaining)
+        if e > self._base_data_length:
+            self._base_data = os.urandom(e)
+            self._base_data_length = e
+        self._remaining = self._remaining - e
+        return self._base_data[:e]
+
+    def remaining(self):
+        return self._remaining
+
+class AsyncLargeStream(BytesIO):
     def __init__(self, length, initial_buffer_length=1024 * 1024):
         super().__init__()
         self._base_data = os.urandom(initial_buffer_length)
@@ -36,6 +61,7 @@ class LargeStream(BytesIO):
 
     def close(self):
         self._closed = True
+
 
 class StageBlockTest(PerfStressTest):
     container_name = PerfStressTest.NewGuid()
@@ -75,7 +101,7 @@ class StageBlockTest(PerfStressTest):
         self.blob_client.stage_block(self.block_id, LargeStream(self.Arguments.size), length=self.Arguments.size)
 
     async def RunAsync(self):
-        await type(self).async_blob_client.stage_block(self.block_id, LargeStream(self.Arguments.size), length=self.Arguments.size)
+        await self.async_blob_client.stage_block(self.block_id, AsyncLargeStream(self.Arguments.size), length=self.Arguments.size)
 
     @staticmethod
     def AddArguments(parser):
