@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/sdk AS build
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1.301 AS build
 
 # Copy csproj and restore
 WORKDIR /app
@@ -19,7 +19,7 @@ RUN dotnet publish --no-restore -c Release -o out -f netcoreapp2.0
 
 
 # Copy build artifacts into runtime image
-FROM mcr.microsoft.com/dotnet/core/runtime AS runtime
+FROM mcr.microsoft.com/dotnet/core/runtime:3.1.5 AS runtime
 WORKDIR /app
 COPY --from=build /app/Azure.Storage.Blobs.V11.PerfStress/out ./
 ENTRYPOINT ["dotnet", "./Azure.Storage.Blobs.V11.PerfStress.dll"]
