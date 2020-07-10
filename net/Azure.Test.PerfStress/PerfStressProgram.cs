@@ -55,6 +55,20 @@ namespace Azure.Test.PerfStress
                 Console.WriteLine("Application started.");
             }
 
+            var azureAssemblies = testType.Assembly.GetReferencedAssemblies()
+                .Where(a => a.Name.StartsWith("Azure", StringComparison.OrdinalIgnoreCase))
+                .Where(a => !a.Name.Equals("Azure.Test.PerfStress", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(a => a.Name);
+            if (azureAssemblies.Any())
+            {
+                Console.WriteLine("=== Azure Assemblies ===");
+                foreach (var a in azureAssemblies)
+                {
+                    Console.WriteLine($"{a.Name}: {a.Version}");
+                }
+                Console.WriteLine();
+            }
+
             Console.WriteLine("=== Options ===");
             Console.WriteLine(JsonSerializer.Serialize(options, options.GetType(), new JsonSerializerOptions()
             {
