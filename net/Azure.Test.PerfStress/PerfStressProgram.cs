@@ -24,20 +24,25 @@ namespace Azure.Test.PerfStress
         public static async Task Main(Assembly assembly, string[] args)
         {
             var testTypes = assembly.ExportedTypes
-                .Concat(typeof(PerfStressProgram).Assembly.ExportedTypes)
                 .Where(t => typeof(IPerfStressTest).IsAssignableFrom(t) && !t.IsAbstract);
 
-            var optionTypes = GetOptionTypes(testTypes);
-
-            await Parser.Default.ParseArguments(args, optionTypes).MapResult<PerfStressOptions, Task>(
-                async o =>
-                {
-                    var verbName = o.GetType().GetCustomAttribute<VerbAttribute>().Name;
-                    var testType = testTypes.Where(t => GetVerbName(t.Name) == verbName).Single();
-                    await Run(testType, o);
-                },
-                errors => Task.CompletedTask
-            );
+            if (testTypes.Any())
+            {
+                var optionTypes = GetOptionTypes(testTypes);
+                await Parser.Default.ParseArguments(args, optionTypes).MapResult<PerfStressOptions, Task>(
+                    async o =>
+                    {
+                        var verbName = o.GetType().GetCustomAttribute<VerbAttribute>().Name;
+                        var testType = testTypes.Where(t => GetVerbName(t.Name) == verbName).Single();
+                        await Run(testType, o);
+                    },
+                    errors => Task.CompletedTask
+                );
+            }
+            else
+            {
+                Console.WriteLine($"Assembly '{assembly.GetName().Name}' does not contain any types implementing 'IPerfStressTest'");
+            }
         }
 
         private static async Task Run(Type testType, PerfStressOptions options)
