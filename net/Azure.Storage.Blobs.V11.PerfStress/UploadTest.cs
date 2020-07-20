@@ -1,6 +1,5 @@
-﻿using Azure.Storage.Blobs.PerfStress.Core;
+﻿using Azure.Test.PerfStress;
 using Microsoft.Azure.Storage.Blob;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 

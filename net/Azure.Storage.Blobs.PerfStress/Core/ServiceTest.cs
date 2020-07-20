@@ -1,7 +1,5 @@
-﻿using Azure.Core.Pipeline;
-using Azure.Test.PerfStress;
+﻿using Azure.Test.PerfStress;
 using System;
-using System.Net.Http;
 
 namespace Azure.Storage.Blobs.PerfStress
 {

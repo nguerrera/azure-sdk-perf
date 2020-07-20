@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Azure.Storage.Blobs.PerfStress.Core
+namespace Azure.Test.PerfStress
 {
     public static class RandomStream
     {

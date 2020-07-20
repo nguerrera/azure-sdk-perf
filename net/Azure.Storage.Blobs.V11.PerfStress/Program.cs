@@ -1,5 +1,4 @@
 ﻿using Azure.Test.PerfStress;
-using System;
 using System.Threading.Tasks;
 
 namespace Azure.Storage.Blobs.V11.PerfStress

@@ -1,4 +1,5 @@
-﻿using CommandLine;
+﻿using Azure.Test.PerfStress;
+using CommandLine;
 
 namespace Azure.Storage.Blobs.PerfStress.Core
 {
