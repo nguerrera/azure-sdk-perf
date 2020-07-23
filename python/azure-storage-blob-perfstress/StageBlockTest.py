@@ -98,11 +98,14 @@ class StageBlockTest(PerfStressTest):
 
 
     def Run(self):
-        self.blob_client.stage_block(self.block_id, LargeStream(self.Arguments.size), length=self.Arguments.size)
+        data = LargeStream(self.Arguments.size) if self.Arguments.stream else self.data
+        self.blob_client.stage_block(self.block_id, data, length=self.Arguments.size)
 
     async def RunAsync(self):
-        await self.async_blob_client.stage_block(self.block_id, AsyncLargeStream(self.Arguments.size), length=self.Arguments.size)
+        data = AsyncLargeStream(self.Arguments.size) if self.Arguments.stream else self.data
+        await self.async_blob_client.stage_block(self.block_id, data, length=self.Arguments.size)
 
     @staticmethod
     def AddArguments(parser):
         parser.add_argument('-s', '--size', nargs='?', type=int, help='Size of blobs to upload.  Default is 10240.', default=10240)
+        parser.add_argument('--stream', action='store_true', help='Upload stream instead of byte array.', default=False)
