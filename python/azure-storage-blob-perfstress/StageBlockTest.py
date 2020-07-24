@@ -1,67 +1,12 @@
 import os
 import uuid
-from io import BytesIO
 
 from azure.test.perfstress import PerfStressTest
+from azure.test.perfstress import RandomStream
+from azure.test.perfstress import AsyncRandomStream
 
 from azure.storage.blob import ContainerClient as SyncContainerClient
 from azure.storage.blob.aio import ContainerClient as AsyncContainerClient
-
-class LargeStream:
-    def __init__(self, length, initial_buffer_length=1024*1024):
-        self._base_data = os.urandom(initial_buffer_length)
-        self._base_data_length = initial_buffer_length
-        self._position = 0
-        self._remaining = length
-
-    def read(self, size=None):
-        if self._remaining == 0:
-            return None
-
-        if size is None:
-            e = self._base_data_length
-        else:
-            e = size
-        e = min(e, self._remaining)
-        if e > self._base_data_length:
-            self._base_data = os.urandom(e)
-            self._base_data_length = e
-        self._remaining = self._remaining - e
-        return self._base_data[:e]
-
-    def remaining(self):
-        return self._remaining
-
-class AsyncLargeStream(BytesIO):
-    def __init__(self, length, initial_buffer_length=1024 * 1024):
-        super().__init__()
-        self._base_data = os.urandom(initial_buffer_length)
-        self._base_data_length = initial_buffer_length
-        self._position = 0
-        self._remaining = length
-        self._closed = False
-
-    def read(self, size=None):
-        if self._remaining == 0:
-            return b""
-
-        if size is None:
-            e = self._base_data_length
-        else:
-            e = size
-        e = min(e, self._remaining)
-        if e > self._base_data_length:
-            self._base_data = os.urandom(e)
-            self._base_data_length = e
-        self._remaining = self._remaining - e
-        return self._base_data[:e]
-
-    def remaining(self):
-        return self._remaining
-
-    def close(self):
-        self._closed = True
-
 
 class StageBlockTest(PerfStressTest):
     container_name = PerfStressTest.NewGuid()
@@ -76,9 +21,13 @@ class StageBlockTest(PerfStressTest):
         if not connection_string:
             raise Exception("Undefined environment variable STORAGE_CONNECTION_STRING")
 
-        type(self).container_client = SyncContainerClient.from_connection_string(conn_str=connection_string, container_name=self.container_name, max_single_put_size=256*1024*1024)
-        
-        type(self).async_container_client = AsyncContainerClient.from_connection_string(conn_str=connection_string, container_name=self.container_name, max_single_put_size=256*1024*1024)
+        if self.Arguments.max_single_put_size:
+            type(self).container_client = SyncContainerClient.from_connection_string(conn_str=connection_string, container_name=self.container_name, max_single_put_size=self.Arguments.max_single_put_size)
+            type(self).async_container_client = AsyncContainerClient.from_connection_string(conn_str=connection_string, container_name=self.container_name, max_single_put_size=self.Arguments.max_single_put_size)
+        else:
+            type(self).container_client = SyncContainerClient.from_connection_string(conn_str=connection_string, container_name=self.container_name)
+            type(self).async_container_client = AsyncContainerClient.from_connection_string(conn_str=connection_string, container_name=self.container_name)
+
         await type(self).async_container_client.__aenter__()
 
         type(self).container_client.create_container()
@@ -98,14 +47,15 @@ class StageBlockTest(PerfStressTest):
 
 
     def Run(self):
-        data = LargeStream(self.Arguments.size) if self.Arguments.stream else self.data
+        data = RandomStream(self.Arguments.size) if self.Arguments.stream else self.data
         self.blob_client.stage_block(self.block_id, data, length=self.Arguments.size)
 
     async def RunAsync(self):
-        data = AsyncLargeStream(self.Arguments.size) if self.Arguments.stream else self.data
+        data = AsyncRandomStream(self.Arguments.size) if self.Arguments.stream else self.data
         await self.async_blob_client.stage_block(self.block_id, data, length=self.Arguments.size)
 
     @staticmethod
     def AddArguments(parser):
+        parser.add_argument('--max-single-put-size', nargs='?', type=int, help='Maximum size of blob uploading in single HTTP PUT.  Default is None.')
         parser.add_argument('-s', '--size', nargs='?', type=int, help='Size of blobs to upload.  Default is 10240.', default=10240)
         parser.add_argument('--stream', action='store_true', help='Upload stream instead of byte array.', default=False)
