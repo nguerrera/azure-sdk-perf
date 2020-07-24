@@ -26,6 +26,9 @@ async def main():
     args = parser.parse_args()
 
     async with aiohttp.ClientSession() as session:
+        # warmup
+        await fetch(session, args.url)
+
         start = timeit.default_timer()
         await asyncio.gather(*[fetchLoop(session, args.url, args.count) for i in range(0, args.parallel)])
         elapsed = timeit.default_timer() - start
