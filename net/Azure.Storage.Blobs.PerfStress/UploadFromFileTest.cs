@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Azure.Storage.Blobs.PerfStress
 {
-    public class UploadFromFileTest : RandomBlobTest<StorageTransferOptionsOptions>
+    public class UploadFromFileTest : BlobTest<StorageTransferOptionsOptions>
     {
         private static string _tempFile;
 

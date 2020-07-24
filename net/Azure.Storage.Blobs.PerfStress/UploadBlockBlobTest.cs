@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Azure.Storage.Blobs.PerfStress
 {
-    public class UploadBlockBlobTest : RandomBlobTest<SizeOptions>
+    public class UploadBlockBlobTest : BlobTest<SizeOptions>
     {
         public UploadBlockBlobTest(SizeOptions options) : base(options)
         {

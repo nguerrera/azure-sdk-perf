@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Azure.Storage.Blobs.PerfStress
 {
-    public class StageBlockTest : RandomBlobTest<StorageTransferOptionsOptions>
+    public class StageBlockTest : BlobTest<StorageTransferOptionsOptions>
     {
         private readonly string _blockId = Guid.NewGuid().ToString("N");
 
