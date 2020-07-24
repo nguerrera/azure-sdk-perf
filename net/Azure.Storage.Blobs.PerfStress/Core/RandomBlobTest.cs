@@ -11,7 +11,7 @@ namespace Azure.Storage.Blobs.PerfStress.Core
 
         public RandomBlobTest(TOptions options) : base(options)
         {
-            var blobName = "uploadtest-" + Guid.NewGuid();
+            var blobName = "randomblobtest-" + Guid.NewGuid();
             BlobClient = BlobContainerClient.GetBlobClient(blobName);
             BlockBlobClient = BlobContainerClient.GetBlockBlobClient(blobName);
         }
