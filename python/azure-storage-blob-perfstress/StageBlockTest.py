@@ -7,11 +7,10 @@ from azure.test.perfstress import RandomStream
 from azure.test.perfstress import AsyncRandomStream
 
 class StageBlockTest(_BlobTest):
-    block_id = str(uuid.uuid4())
-
-    async def GlobalSetupAsync(self):
-        await super().GlobalSetupAsync()
+    def __init__(self, arguments):
+        super().__init__(arguments)
         self.data = b'a' * self.Arguments.size
+        self.block_id = str(uuid.uuid4())
 
     def Run(self):
         data = RandomStream(self.Arguments.size) if self.Arguments.stream else self.data
