@@ -6,8 +6,8 @@ from azure.test.perfstress import RandomStream
 from azure.test.perfstress import AsyncRandomStream
 
 class UploadBlobTest(_BlobTest):
-    async def GlobalSetupAsync(self):
-        await super().GlobalSetupAsync()
+    def __init__(self, arguments):
+        super().__init__(arguments)
         self.data = b'a' * self.Arguments.size
 
     def Run(self):
