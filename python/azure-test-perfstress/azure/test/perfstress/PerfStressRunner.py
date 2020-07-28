@@ -63,14 +63,12 @@ class PerfStressRunner:
 
         # Per-test args
         self._test_class_to_run.AddArguments(per_test_arg_parser)
-        per_test_args = per_test_arg_parser.parse_args(sys.argv[2:])
-
-        self._test_class_to_run.Arguments = per_test_args
+        self.per_test_args = per_test_arg_parser.parse_args(sys.argv[2:])
 
         self.logger.info("")
         self.logger.info("=== Options ===")
         self.logger.info(args)
-        self.logger.info(per_test_args)
+        self.logger.info(self.per_test_args)
         self.logger.info("")
 
 
@@ -98,8 +96,8 @@ class PerfStressRunner:
         self.logger.info("=== Setup ===")
        
         tests = []
-        for _ in range(0, self._test_class_to_run.Arguments.parallel):
-            tests.append(self._test_class_to_run())
+        for _ in range(0, self.per_test_args.parallel):
+            tests.append(self._test_class_to_run(self.per_test_args))
 
         try:
             await tests[0].GlobalSetupAsync()
@@ -108,21 +106,24 @@ class PerfStressRunner:
 
                 self.logger.info("")
 
-                if self._test_class_to_run.Arguments.warmup > 0:
-                    await self._RunTestsAsync(tests, self._test_class_to_run.Arguments.warmup, "Warmup")
+                if self.per_test_args.warmup > 0:
+                    await self._RunTestsAsync(tests, self.per_test_args.warmup, "Warmup")
 
-                for i in range(0, self._test_class_to_run.Arguments.iterations):
+                for i in range(0, self.per_test_args.iterations):
                     title = "Test"
-                    if self._test_class_to_run.Arguments.iterations > 1:
+                    if self.per_test_args.iterations > 1:
                         title += " " + (i + 1)
-                    await self._RunTestsAsync(tests, self._test_class_to_run.Arguments.duration, title)
-
+                    await self._RunTestsAsync(tests, self.per_test_args.duration, title)
+            except Exception as e:
+                print("Exception: " + e)
             finally:
-                if not self._test_class_to_run.Arguments.no_cleanup:
+                if not self.per_test_args.no_cleanup:
                     self.logger.info("=== Cleanup ===")
                     await asyncio.gather(*[test.CleanupAsync() for test in tests])
+        except Exception as e:
+            print("Exception: " + e)
         finally:
-            if not self._test_class_to_run.Arguments.no_cleanup:
+            if not self.per_test_args.no_cleanup:
                 await tests[0].GlobalCleanupAsync()
 
 
@@ -133,7 +134,7 @@ class PerfStressRunner:
 
         status_thread = RepeatedTimer(1, self._PrintStatus, title)
 
-        if self._test_class_to_run.Arguments.sync:
+        if self.per_test_args.sync:
             threads = []
             for id, test in enumerate(tests):
                 thread = threading.Thread(target=lambda: self.RunLoop(test, duration, id))

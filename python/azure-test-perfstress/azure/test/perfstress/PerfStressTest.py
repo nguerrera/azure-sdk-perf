@@ -8,6 +8,9 @@ class PerfStressTest:
 - GlobalSetup and GlobalCleanup are optional and run once, ever, regardless of parallelism.
 - Setup and Cleanup are run once per test instance (where each instance runs in its own thread/process), regardless of #iterations.
 - Run/RunAsync are run once per iteration.'''
+    def __init__(self, arguments):
+        self.Arguments = arguments
+
     async def GlobalSetupAsync(self):
         return
 
@@ -34,11 +37,12 @@ class PerfStressTest:
 
     Arguments = {}
     # Override this method to add test-specific argparser args to the class.
-    # These are accessable in the Arguments class property.
+    # These are accessible in __init__() and the self.Arguments property.
     @staticmethod
     def AddArguments(parser):
         return
     
+    # TODO: Remove method
     @staticmethod
     def NewGuid(length=10):
         return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))
