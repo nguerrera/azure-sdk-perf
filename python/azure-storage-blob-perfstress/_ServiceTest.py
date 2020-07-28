@@ -20,12 +20,8 @@ class _ServiceTest(PerfStressTest):
             self.service_client = SyncBlobServiceClient.from_connection_string(conn_str=connection_string)
             self.async_service_client = AsyncBlobServiceClient.from_connection_string(conn_str=connection_string)
 
-    async def SetupAsync(self):
-        await super().SetupAsync()
-        await self.async_service_client.__aenter__()
-
     async def CleanupAsync(self):
-        await self.async_service_client.__aexit__()
+        await self.async_service_client.close()
         await super().CleanupAsync()
 
     @staticmethod

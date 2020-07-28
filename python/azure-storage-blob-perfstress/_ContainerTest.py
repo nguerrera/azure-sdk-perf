@@ -13,14 +13,10 @@ class _ContainerTest(_ServiceTest):
         await super().GlobalSetupAsync()
         self.container_client.create_container()
 
-    async def SetupAsync(self):
-        await super().SetupAsync()
-        await self.async_container_client.__aenter__()
-
     async def GlobalCleanupAsync(self):
         self.container_client.delete_container()
         await super().GlobalCleanupAsync()
 
     async def CleanupAsync(self):
-        await self.async_container_client.__aexit__()
+        await self.async_container_client.close()
         await super().CleanupAsync()

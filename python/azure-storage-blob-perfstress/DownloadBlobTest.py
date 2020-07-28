@@ -14,12 +14,8 @@ class DownloadBlobTest(_ContainerTest):
         data = b'a' * self.Arguments.size
         self.blob_client.upload_blob(data)
 
-    async def SetupAsync(self):
-        await super().SetupAsync()
-        await self.async_blob_client.__aenter__()
-
     async def CleanupAsync(self):
-        await self.async_blob_client.__aexit__()
+        await self.async_blob_client.close()
         await super().CleanupAsync()
 
     def Run(self):
