@@ -115,13 +115,13 @@ class PerfStressRunner:
                         title += " " + (i + 1)
                     await self._RunTestsAsync(tests, self.per_test_args.duration, title)
             except Exception as e:
-                print("Exception: " + e)
+                print("Exception: " + str(e))
             finally:
                 if not self.per_test_args.no_cleanup:
                     self.logger.info("=== Cleanup ===")
                     await asyncio.gather(*[test.CleanupAsync() for test in tests])
         except Exception as e:
-            print("Exception: " + e)
+            print("Exception: " + str(e))
         finally:
             if not self.per_test_args.no_cleanup:
                 await tests[0].GlobalCleanupAsync()
