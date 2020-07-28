@@ -14,16 +14,16 @@ class DownloadBlobTest(_ContainerTest):
         data = b'a' * self.Arguments.size
         self.blob_client.upload_blob(data)
 
-    async def CleanupAsync(self):
-        await self.async_blob_client.close()
-        await super().CleanupAsync()
-
     def Run(self):
         self.blob_client.download_blob().readall()
 
     async def RunAsync(self):
         stream = await self.async_blob_client.download_blob()
         await stream.readall()
+
+    async def CleanupAsync(self):
+        await self.async_blob_client.close()
+        await super().CleanupAsync()
 
     @staticmethod
     def AddArguments(parser):
