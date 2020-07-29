@@ -6,6 +6,7 @@ from azure.storage.blob import BlobServiceClient as SyncBlobServiceClient
 from azure.storage.blob.aio import BlobServiceClient as AsyncBlobServiceClient
 
 class _ServiceTest(PerfStressTest):
+    # TODO: Move service_client from instance to static variable
     def __init__(self, arguments):
         super().__init__(arguments)
 
@@ -20,9 +21,9 @@ class _ServiceTest(PerfStressTest):
             self.service_client = SyncBlobServiceClient.from_connection_string(conn_str=connection_string)
             self.async_service_client = AsyncBlobServiceClient.from_connection_string(conn_str=connection_string)
 
-    async def CleanupAsync(self):
+    async def CloseAsync(self):
         await self.async_service_client.close()
-        await super().CleanupAsync()
+        await super().CloseAsync()
 
     @staticmethod
     def AddArguments(parser):

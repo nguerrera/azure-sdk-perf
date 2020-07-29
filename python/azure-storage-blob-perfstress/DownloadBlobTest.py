@@ -9,6 +9,7 @@ class DownloadBlobTest(_ContainerTest):
         self.blob_client = self.container_client.get_blob_client(blob_name)
         self.async_blob_client = self.async_container_client.get_blob_client(blob_name)
 
+    # TODO: Use async client
     async def GlobalSetupAsync(self):
         await super().GlobalSetupAsync()
         data = b'a' * self.Arguments.size
@@ -21,9 +22,9 @@ class DownloadBlobTest(_ContainerTest):
         stream = await self.async_blob_client.download_blob()
         await stream.readall()
 
-    async def CleanupAsync(self):
+    async def CloseAsync(self):
         await self.async_blob_client.close()
-        await super().CleanupAsync()
+        await super().CloseAsync()
 
     @staticmethod
     def AddArguments(parser):

@@ -5,7 +5,7 @@ from _ContainerTest import _ContainerTest
 class GetBlobsTest(_ContainerTest):
     async def GlobalSetupAsync(self):
         await super().GlobalSetupAsync()
-        # TODO: Upload in parallel to improve setup perf
+        # TODO: Upload in parallel using async client to improve setup perf
         for _ in range(0, self.Arguments.count): #pylint: disable=no-member
             self.container_client.upload_blob("getblobstest-" + str(uuid.uuid4()), '')
 

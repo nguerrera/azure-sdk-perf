@@ -100,31 +100,36 @@ class PerfStressRunner:
             tests.append(self._test_class_to_run(self.per_test_args))
 
         try:
-            await tests[0].GlobalSetupAsync()
             try:
-                await asyncio.gather(*[test.SetupAsync() for test in tests])
+                await tests[0].GlobalSetupAsync()
+                try:
+                    await asyncio.gather(*[test.SetupAsync() for test in tests])
 
-                self.logger.info("")
+                    self.logger.info("")
 
-                if self.per_test_args.warmup > 0:
-                    await self._RunTestsAsync(tests, self.per_test_args.warmup, "Warmup")
+                    if self.per_test_args.warmup > 0:
+                        await self._RunTestsAsync(tests, self.per_test_args.warmup, "Warmup")
 
-                for i in range(0, self.per_test_args.iterations):
-                    title = "Test"
-                    if self.per_test_args.iterations > 1:
-                        title += " " + (i + 1)
-                    await self._RunTestsAsync(tests, self.per_test_args.duration, title)
+                    for i in range(0, self.per_test_args.iterations):
+                        title = "Test"
+                        if self.per_test_args.iterations > 1:
+                            title += " " + (i + 1)
+                        await self._RunTestsAsync(tests, self.per_test_args.duration, title)
+                except Exception as e:
+                    print("Exception: " + str(e))
+                finally:
+                    if not self.per_test_args.no_cleanup:
+                        self.logger.info("=== Cleanup ===")
+                        await asyncio.gather(*[test.CleanupAsync() for test in tests])
             except Exception as e:
                 print("Exception: " + str(e))
             finally:
                 if not self.per_test_args.no_cleanup:
-                    self.logger.info("=== Cleanup ===")
-                    await asyncio.gather(*[test.CleanupAsync() for test in tests])
+                    await tests[0].GlobalCleanupAsync()
         except Exception as e:
             print("Exception: " + str(e))
         finally:
-            if not self.per_test_args.no_cleanup:
-                await tests[0].GlobalCleanupAsync()
+            await asyncio.gather(*[test.CloseAsync() for test in tests])
 
 
     async def _RunTestsAsync(self, tests, duration, title):

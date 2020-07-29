@@ -7,6 +7,7 @@ class PerfStressTest:
 - Run and RunAsync must be implemented.
 - GlobalSetup and GlobalCleanup are optional and run once, ever, regardless of parallelism.
 - Setup and Cleanup are run once per test instance (where each instance runs in its own thread/process), regardless of #iterations.
+- Close is run once per test instance, after Cleanup and GlobalCleanup.
 - Run/RunAsync are run once per iteration.'''
     def __init__(self, arguments):
         self.Arguments = arguments
@@ -21,6 +22,9 @@ class PerfStressTest:
         return
 
     async def CleanupAsync(self):
+        return
+
+    async def CloseAsync(self):
         return
 
     def __enter__(self):

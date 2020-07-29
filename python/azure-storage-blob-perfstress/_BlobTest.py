@@ -8,6 +8,6 @@ class _BlobTest(_ContainerTest):
         self.blob_client = self.container_client.get_blob_client(blob_name)
         self.async_blob_client = self.async_container_client.get_blob_client(blob_name)
 
-    async def CleanupAsync(self):
+    async def CloseAsync(self):
         await self.async_blob_client.close()
-        await super().CleanupAsync()
+        await super().CloseAsync()
