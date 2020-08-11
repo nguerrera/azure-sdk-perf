@@ -12,9 +12,10 @@ namespace Azure.Test.PerfStress
             HttpClient httpClient;
             if (options.Insecure)
             {
-                var httpClientHandler = new HttpClientHandler();
-                httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
-                httpClient = new HttpClient(httpClientHandler);
+                httpClient = new HttpClient(new HttpClientHandler()
+                {
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+                });
             }
             else
             {
