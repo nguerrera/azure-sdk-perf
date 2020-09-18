@@ -21,13 +21,13 @@ namespace Azure.Test.PerfStress
         public override void Run(CancellationToken cancellationToken)
         {
             Thread.Sleep(_delay);
-            _delay *= Options.IterationGrowthFactor;
+            _delay = TimeSpan.FromMilliseconds(_delay.TotalMilliseconds * Options.IterationGrowthFactor);
         }
 
         public override async Task RunAsync(CancellationToken cancellationToken)
         {
             await Task.Delay(_delay, cancellationToken);
-            _delay *= Options.IterationGrowthFactor;
+            _delay = TimeSpan.FromMilliseconds(_delay.TotalMilliseconds * Options.IterationGrowthFactor);
         }
 
         public class DelayOptions : PerfStressOptions {
