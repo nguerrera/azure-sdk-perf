@@ -24,7 +24,7 @@ namespace Azure.Test.PerfStress
         public static async Task Main(Assembly assembly, string[] args)
         {
             var testTypes = assembly.ExportedTypes
-                .Where(t => typeof(IPerfStressTest).IsAssignableFrom(t) && !t.IsAbstract);
+                .Where(t => typeof(IPerfStressTestBase).IsAssignableFrom(t) && !t.IsAbstract);
 
             if (testTypes.Any())
             {
@@ -85,10 +85,10 @@ namespace Azure.Test.PerfStress
             using var cleanupStatusCts = new CancellationTokenSource();
             Thread cleanupStatusThread = null;
 
-            var tests = new IPerfStressTest[options.Parallel];
+            var tests = new IPerfStressTestBase[options.Parallel];
             for (var i = 0; i < options.Parallel; i++)
             {
-                tests[i] = (IPerfStressTest)Activator.CreateInstance(testType, options);
+                tests[i] = (IPerfStressTestBase)Activator.CreateInstance(testType, options);
             }
 
             try
@@ -149,7 +149,7 @@ namespace Azure.Test.PerfStress
             }
         }
 
-        private static async Task RunTestsAsync(IPerfStressTest[] tests, bool sync, int parallel, int? rate,
+        private static async Task RunTestsAsync(IPerfStressTestBase[] tests, bool sync, int parallel, int? rate,
             int durationSeconds, string title, bool jobStatistics = false, bool latency = false)
         {
             _completedOperations = new int[parallel];
@@ -296,70 +296,31 @@ namespace Azure.Test.PerfStress
             Console.WriteLine();
         }
 
-        private static void RunLoop(IPerfStressTest test, int index, bool latency, CancellationToken cancellationToken)
+        private static void RunLoop(IPerfStressTestBase test, int index, bool latency, CancellationToken cancellationToken)
         {
-            var sw = Stopwatch.StartNew();
-            var latencySw = new Stopwatch();
+            var resultCollector = new MyResultCollector(index);
+
             try
             {
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    if (latency)
-                    {
-                        latencySw.Restart();
-                    }
-
-                    test.Run(cancellationToken);
-
-                    if (latency)
-                    {
-                        _latencies[index].Add(latencySw.Elapsed);
-                    }
-
-                    _completedOperations[index]++;
-                    _lastCompletionTimes[index] = sw.Elapsed;
-                }
+                test.RunLoop(resultCollector, latency, _pendingOperations, cancellationToken);
             }
-            catch (OperationCanceledException)
+            catch (Exception e)
             {
+                // Ignore if any part of the exception chain is type OperationCanceledException
+                if (!ContainsOperationCanceledException(e))
+                {
+                    throw;
+                }
             }
         }
 
-        private static async Task RunLoopAsync(IPerfStressTest test, int index, bool latency, CancellationToken cancellationToken)
+        private static async Task RunLoopAsync(IPerfStressTestBase test, int index, bool latency, CancellationToken cancellationToken)
         {
-            var sw = Stopwatch.StartNew();
-            var latencySw = new Stopwatch();
-            (TimeSpan Start, Stopwatch Stopwatch) operation = (TimeSpan.Zero, null);
+            var resultCollector = new MyResultCollector(index);
 
             try
             {
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    if (_pendingOperations != null)
-                    {
-                        operation = await _pendingOperations.Reader.ReadAsync(cancellationToken);
-                    }
-
-                    if (latency)
-                    {
-                        latencySw.Restart();
-                    }
-
-                    await test.RunAsync(cancellationToken);
-
-                    if (latency)
-                    {
-                        _latencies[index].Add(latencySw.Elapsed);
-
-                        if (_pendingOperations != null)
-                        {
-                            _correctedLatencies[index].Add(operation.Stopwatch.Elapsed - operation.Start);
-                        }
-                    }
-
-                    _completedOperations[index]++;
-                    _lastCompletionTimes[index] = sw.Elapsed;
-                }
+                await test.RunLoopAsync(resultCollector, latency, _pendingOperations, cancellationToken);
             }
             catch (Exception e)
             {
@@ -501,6 +462,34 @@ namespace Azure.Test.PerfStress
         {
             var lower = testName.ToLowerInvariant();
             return lower.EndsWith("test") ? lower.Substring(0, lower.Length - 4) : lower;
+        }
+
+        private class MyResultCollector : ResultCollector
+        {
+            private readonly int _index;
+            private readonly Stopwatch _sw;
+
+            public MyResultCollector(int index)
+            {
+                _sw = Stopwatch.StartNew();
+                _index = index;
+            }
+
+            public override void Add(TimeSpan latency, TimeSpan correctedLatency)
+            {
+                if (_latencies != null)
+                {
+                    _latencies[_index].Add(latency);
+
+                    if (_correctedLatencies != null)
+                    {
+                        _correctedLatencies[_index].Add(correctedLatency);
+                    }
+                }
+
+                _completedOperations[_index]++;
+                _lastCompletionTimes[_index] = _sw.Elapsed;
+            }
         }
     }
 }
