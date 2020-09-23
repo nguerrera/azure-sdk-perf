@@ -302,7 +302,7 @@ namespace Azure.Test.PerfStress
 
             try
             {
-                test.RunBase(resultCollector, latency, _pendingOperations, cancellationToken);
+                test.Run(resultCollector, latency, _pendingOperations, cancellationToken);
             }
             catch (Exception e)
             {
@@ -320,7 +320,7 @@ namespace Azure.Test.PerfStress
 
             try
             {
-                await test.RunBaseAsync(resultCollector, latency, _pendingOperations, cancellationToken);
+                await test.RunAsync(resultCollector, latency, _pendingOperations, cancellationToken);
             }
             catch (Exception e)
             {

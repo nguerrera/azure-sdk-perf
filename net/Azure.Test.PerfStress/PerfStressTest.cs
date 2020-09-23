@@ -16,7 +16,7 @@ namespace Azure.Test.PerfStress
 
         public abstract Task RunAsync(CancellationToken cancellationToken);
 
-        public sealed override void RunBase(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
+        public sealed override void Run(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
         {
             var latencySw = new Stopwatch();
             (TimeSpan Start, Stopwatch Stopwatch) operation = (TimeSpan.Zero, null);
@@ -54,7 +54,7 @@ namespace Azure.Test.PerfStress
             }
         }
 
-        public sealed override async Task RunBaseAsync(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
+        public sealed override async Task RunAsync(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
         {
             var latencySw = new Stopwatch();
             (TimeSpan Start, Stopwatch Stopwatch) operation = (TimeSpan.Zero, null);

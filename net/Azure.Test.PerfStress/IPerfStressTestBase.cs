@@ -10,8 +10,8 @@ namespace Azure.Test.PerfStress
     {
         Task GlobalSetupAsync();
         Task SetupAsync();
-        void RunBase(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken);
-        Task RunBaseAsync(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken);
+        void Run(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken);
+        Task RunAsync(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken);
         Task CleanupAsync();
         Task GlobalCleanupAsync();
     }
