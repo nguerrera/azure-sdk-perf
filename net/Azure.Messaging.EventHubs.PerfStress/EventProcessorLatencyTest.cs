@@ -1,20 +1,19 @@
 ﻿using Azure.Messaging.EventHubs.PerfStress.Core;
 using Azure.Test.PerfStress;
 using System;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Azure.Messaging.EventHubs.PerfStress
 {
-    public class EventProcessorTest : ProducerProcessorTest<PerfStressOptions>
+    public class EventProcessorLatencyTest : ProducerProcessorTest<PerfStressOptions>
     {
         private readonly SemaphoreSlim _receiveSemaphore = new SemaphoreSlim(0);
 
         private readonly SemaphoreSlim _errorSemaphore = new SemaphoreSlim(0);
         private Exception _exception;
 
-        public EventProcessorTest(PerfStressOptions options) : base(options)
+        public EventProcessorLatencyTest(PerfStressOptions options) : base(options)
         {
             Processor.ProcessEventAsync += e =>
             {
