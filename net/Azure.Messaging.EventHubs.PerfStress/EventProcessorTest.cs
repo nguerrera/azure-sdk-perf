@@ -19,14 +19,13 @@ namespace Azure.Messaging.EventHubs.PerfStress
             throw new NotImplementedException();
         }
 
-        // TODO
-        // - Ensure message is not left in queue no matter when method is cancelled
         public override async Task RunAsync(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
         {
             var sw = Stopwatch.StartNew();
             
             using var sendSemaphore = new SemaphoreSlim(initialCount: 1, maxCount: 1);
 
+            // TODO: Assign event handlers to local variables to allow detaching
             Processor.ProcessEventAsync += e =>
             {
                 var end = sw.ElapsedTicks;
@@ -37,6 +36,9 @@ namespace Azure.Messaging.EventHubs.PerfStress
                 }
 
                 var start = BitConverter.ToInt64(e.Data.Body.ToArray(), 0);
+
+                Console.WriteLine($"Start: {start}, End: {end}");
+
                 resultCollector.Add(latency: TimeSpan.FromTicks(end - start));
 
                 // Allow producer to send next message
@@ -45,22 +47,33 @@ namespace Azure.Messaging.EventHubs.PerfStress
                 return Task.CompletedTask;
             };
 
+            Processor.ProcessErrorAsync += e =>
+            {
+                throw e.Exception;
+            };
+
             try
             {
+                Console.WriteLine("Producer.StartProcessingAsync()");
+
+                // TODO: If event hub has multiple partitions, the first event may not be processed for many seconds
                 await Processor.StartProcessingAsync(cancellationToken);
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
+                    Console.WriteLine("sendSemaphore.WaitAsync()");
                     // Don't send a new message until processor has received the previous message.
                     await sendSemaphore.WaitAsync(cancellationToken);
 
                     try
                     {
+                        Console.WriteLine("Producer.CreateBatchAsync()");
                         using var batch = await Producer.CreateBatchAsync(cancellationToken);
 
                         var start = sw.ElapsedTicks;
                         batch.TryAdd(new EventData(BitConverter.GetBytes(start)));
 
+                        Console.WriteLine("Producer.SendAsync()");
                         await Producer.SendAsync(batch, cancellationToken);
                     }
                     catch
@@ -77,8 +90,14 @@ namespace Azure.Messaging.EventHubs.PerfStress
             }
             finally
             {
-                // Do not flow cancellationToken, since we want processing to stop gracefully even after the test run is cancelled
-                await Processor.StopProcessingAsync();
+                // TODO: Detach event handlers
+
+                // TODO: StopProcessingAsync() takes about 30 seconds (!) to complete
+
+                //Console.WriteLine("await Producer.StopProcessingAsync()");
+                //// Do not flow cancellationToken, since we want processing to stop gracefully even after the test run is cancelled
+                //await Processor.StopProcessingAsync();
+                //Console.WriteLine("awaited Producer.StopProcessingAsync()");
             }
         }
     }
