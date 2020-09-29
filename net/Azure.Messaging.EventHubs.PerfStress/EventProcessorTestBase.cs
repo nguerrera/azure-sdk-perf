@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace Azure.Messaging.EventHubs.PerfStress
 {
-    public class EventProcessorTest : ProducerProcessorTestBase<PerfStressOptions>
+    public class EventProcessorTestBase : ProducerProcessorTestBase<PerfStressOptions>
     {
-        public EventProcessorTest(PerfStressOptions options) : base(options)
+        public EventProcessorTestBase(PerfStressOptions options) : base(options)
         {
         }
 
