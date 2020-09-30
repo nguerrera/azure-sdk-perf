@@ -93,42 +93,27 @@ namespace Azure.Test.PerfStress
 
             try
             {
+                await tests[0].GlobalSetupAsync();
+
                 try
                 {
-                    await tests[0].GlobalSetupAsync();
+                    await Task.WhenAll(tests.Select(t => t.SetupAsync()));
+                    setupStatusCts.Cancel();
+                    setupStatusThread.Join();
 
-                    try
+                    if (options.Warmup > 0)
                     {
-                        await Task.WhenAll(tests.Select(t => t.SetupAsync()));
-                        setupStatusCts.Cancel();
-                        setupStatusThread.Join();
-
-                        if (options.Warmup > 0)
-                        {
-                            await RunTestsAsync(tests, options.Sync, options.Parallel, options.Rate, options.Warmup, "Warmup");
-                        }
-
-                        for (var i = 0; i < options.Iterations; i++)
-                        {
-                            var title = "Test";
-                            if (options.Iterations > 1)
-                            {
-                                title += " " + (i + 1);
-                            }
-                            await RunTestsAsync(tests, options.Sync, options.Parallel, options.Rate, options.Duration, title, options.JobStatistics, options.Latency);
-                        }
+                        await RunTestsAsync(tests, options.Sync, options.Parallel, options.Rate, options.Warmup, "Warmup");
                     }
-                    finally
-                    {
-                        if (!options.NoCleanup)
-                        {
-                            if (cleanupStatusThread == null)
-                            {
-                                cleanupStatusThread = PrintStatus("=== Cleanup ===", () => ".", newLine: false, cleanupStatusCts.Token);
-                            }
 
-                            await Task.WhenAll(tests.Select(t => t.CleanupAsync()));
+                    for (var i = 0; i < options.Iterations; i++)
+                    {
+                        var title = "Test";
+                        if (options.Iterations > 1)
+                        {
+                            title += " " + (i + 1);
                         }
+                        await RunTestsAsync(tests, options.Sync, options.Parallel, options.Rate, options.Duration, title, options.JobStatistics, options.Latency);
                     }
                 }
                 finally
@@ -140,13 +125,21 @@ namespace Azure.Test.PerfStress
                             cleanupStatusThread = PrintStatus("=== Cleanup ===", () => ".", newLine: false, cleanupStatusCts.Token);
                         }
 
-                        await tests[0].GlobalCleanupAsync();
+                        await Task.WhenAll(tests.Select(t => t.CleanupAsync()));
                     }
                 }
             }
             finally
             {
-                await Task.WhenAll(tests.Select(t => t.DisposeAsync().AsTask()));
+                if (!options.NoCleanup)
+                {
+                    if (cleanupStatusThread == null)
+                    {
+                        cleanupStatusThread = PrintStatus("=== Cleanup ===", () => ".", newLine: false, cleanupStatusCts.Token);
+                    }
+
+                    await tests[0].GlobalCleanupAsync();
+                }
             }
 
             cleanupStatusCts.Cancel();
