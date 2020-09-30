@@ -1,94 +1,39 @@
-﻿using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Channels;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace Azure.Test.PerfStress
 {
-    public abstract class PerfStressTest<TOptions> : PerfStressTestBase<TOptions> where TOptions : PerfStressOptions
+    public abstract class PerfStressTest<TOptions> : IPerfStressTest where TOptions : PerfStressOptions
     {
-        public PerfStressTest(TOptions options) : base(options)
+        protected TOptions Options { get; private set; }
+
+        public PerfStressTest(TOptions options)
         {
+            Options = options;
+        }
+
+        public virtual Task GlobalSetupAsync()
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task SetupAsync()
+        {
+            return Task.CompletedTask;
         }
 
         public abstract void Run(CancellationToken cancellationToken);
 
         public abstract Task RunAsync(CancellationToken cancellationToken);
 
-        public sealed override void RunLoop(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
+        public virtual Task CleanupAsync()
         {
-            var latencySw = new Stopwatch();
-            (TimeSpan Start, Stopwatch Stopwatch) operation = (TimeSpan.Zero, null);
-
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                if (pendingOperations != null)
-                {
-                    // TODO: Could the perf of this be improved?
-                    operation = pendingOperations.Reader.ReadAsync(cancellationToken).AsTask().Result;
-                }
-
-                if (latency)
-                {
-                    latencySw.Restart();
-                }
-
-                Run(cancellationToken);
-
-                if (latency)
-                {
-                    if (pendingOperations != null)
-                    {
-                        resultCollector.Add(latencySw.Elapsed, operation.Stopwatch.Elapsed - operation.Start);
-                    }
-                    else
-                    {
-                        resultCollector.Add(latencySw.Elapsed);
-                    }
-                }
-                else
-                {
-                    resultCollector.Add();
-                }
-            }
+            return Task.CompletedTask;
         }
 
-        public sealed override async Task RunLoopAsync(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
+        public virtual Task GlobalCleanupAsync()
         {
-            var latencySw = new Stopwatch();
-            (TimeSpan Start, Stopwatch Stopwatch) operation = (TimeSpan.Zero, null);
-
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                if (pendingOperations != null)
-                {
-                    operation = await pendingOperations.Reader.ReadAsync(cancellationToken);
-                }
-
-                if (latency)
-                {
-                    latencySw.Restart();
-                }
-
-                await RunAsync(cancellationToken);
-
-                if (latency)
-                {
-                    if (pendingOperations != null)
-                    {
-                        resultCollector.Add(latencySw.Elapsed, operation.Stopwatch.Elapsed - operation.Start);
-                    }
-                    else
-                    {
-                        resultCollector.Add(latencySw.Elapsed);
-                    }
-                }
-                else
-                {
-                    resultCollector.Add();
-                }
-            }
+            return Task.CompletedTask;
         }
     }
 }
