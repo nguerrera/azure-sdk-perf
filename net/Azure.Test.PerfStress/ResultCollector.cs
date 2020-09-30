@@ -15,5 +15,12 @@ namespace Azure.Test.PerfStress
         }
 
         public abstract void Add(TimeSpan latency, TimeSpan correctedLatency);
+
+        public void Increment(string metric)
+        {
+            Increment(metric, 1);
+        }
+
+        public abstract void Increment(string metric, long value);
     }
 }

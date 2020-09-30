@@ -21,6 +21,8 @@ namespace Azure.Test.PerfStress
         private static List<TimeSpan>[] _correctedLatencies;
         private static Channel<(TimeSpan, Stopwatch)> _pendingOperations;
 
+        private static Dictionary<string, long>[] _metrics;
+
         public static async Task Main(Assembly assembly, string[] args)
         {
             var testTypes = assembly.ExportedTypes
@@ -161,6 +163,12 @@ namespace Azure.Test.PerfStress
         {
             _completedOperations = new int[parallel];
             _lastCompletionTimes = new TimeSpan[parallel];
+
+            _metrics = new Dictionary<string, long>[parallel];
+            for (var i=0; i < parallel; i++)
+            {
+                _metrics[i] = new Dictionary<string, long>();
+            }
 
             if (latency)
             {
@@ -496,6 +504,19 @@ namespace Azure.Test.PerfStress
 
                 _completedOperations[_index]++;
                 _lastCompletionTimes[_index] = _sw.Elapsed;
+            }
+
+            public override void Increment(string metric, long value)
+            {
+                var dict = _metrics[_index];
+                if (dict.ContainsKey(metric))
+                {
+                    dict[metric] += value;
+                }
+                else
+                {
+                    dict.Add(metric, value);
+                }
             }
         }
     }
