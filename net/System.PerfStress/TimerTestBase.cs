@@ -32,13 +32,13 @@ namespace System.PerfStress
             state: null, dueTime: TimeSpan.FromSeconds(1), period: TimeSpan.FromSeconds(1));
         }
 
-        public override void RunBase(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
+        public override void RunLoop(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
         {
             using var timer = CreateTimer(resultCollector, latency);
             cancellationToken.WaitHandle.WaitOne();
         }
 
-        public override async Task RunBaseAsync(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
+        public override async Task RunLoopAsync(ResultCollector resultCollector, bool latency, Channel<(TimeSpan, Stopwatch)> pendingOperations, CancellationToken cancellationToken)
         {
             using var timer = CreateTimer(resultCollector, latency);
             await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
