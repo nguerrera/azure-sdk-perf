@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Azure.Test.PerfStress;
+using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Azure.Test.PerfStress
+namespace System.PerfStress
 {
     public class HttpClientGetTest : PerfStressTest<UrlOptions>
     {

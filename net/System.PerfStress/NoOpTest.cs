@@ -1,7 +1,8 @@
-﻿using System.Threading;
+﻿using Azure.Test.PerfStress;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace Azure.Test.PerfStress
+namespace System.PerfStress
 {
     // Used for measuring the overhead of the perf framework with the fastest possible test
     public class NoOpTest : PerfStressTest<PerfStressOptions>

@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Azure.Test.PerfStress;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Azure.Test.PerfStress
+namespace System.PerfStress
 {
     // Measures the overhead of creating, throwing, and catching an exception (compared to NoOpTest)
     public class ExceptionTest : PerfStressTest<PerfStressOptions>

@@ -1,6 +1,7 @@
-﻿using CommandLine;
+﻿using Azure.Test.PerfStress;
+using CommandLine;
 
-namespace Azure.Test.PerfStress
+namespace System.PerfStress
 {
     public class UrlOptions : PerfStressOptions
     {

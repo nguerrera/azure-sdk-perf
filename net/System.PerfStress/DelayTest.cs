@@ -1,10 +1,11 @@
-﻿using CommandLine;
+﻿using Azure.Test.PerfStress;
+using CommandLine;
 using System;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Azure.Test.PerfStress
+namespace System.PerfStress
 {
     public class DelayTest : PerfStressTest<DelayTest.DelayOptions>
     {
